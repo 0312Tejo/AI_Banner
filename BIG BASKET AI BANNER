@@ -1,0 +1,163 @@
+//html code
+
+<div class="container">
+    <h1>Dynamic Banner Generator</h1>
+
+    <form id="zipForm">
+        <label for="productZip">Upload Product Images (ZIP File):</label>
+        <input type="file" id="productZip" accept=".zip"><br>
+
+        <button type="submit">Generate Banners</button>
+    </form>
+
+    <div id="bannerContainer" class="banner-container">
+        <h2>Your Banners:</h2>
+        <div class="banners"></div>
+        <button id="prev">Previous</button>
+        <button id="next">Next</button>
+    </div>
+</div>
+
+//CSS code
+
+.container {
+    width: 80%;
+    margin: 0 auto;
+    text-align: center;
+    padding: 20px;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+}
+
+.banner-container {
+    position: relative;
+    overflow: hidden;
+    height: 800px;
+}
+
+.banners {
+    display: flex;
+    transition: transform 0.5s ease-in-out;
+}
+
+.banner {
+    min-width: 1360px;
+    height: 800px;
+    position: relative;
+    border: 2px solid #000;
+    background-color: #f9f9f9;
+}
+
+.banner img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 0 auto;
+}
+
+.banner p {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    font-size: 24px;
+    color: white;
+    background-color: rgba(0, 0, 0, 0.5);
+    padding: 10px;
+    border-radius: 5px;
+}
+
+button {
+    margin-top: 20px;
+}
+
+//JS code
+
+const offers = [
+    "MAX₹99OFF",
+    "UPTO60%OFF",
+    "UNDER₹999",
+    "MIN₹10OFF",
+    "MIN20%OFF",
+    "STARTS@₹99",
+    "FLAT₹100OFF",
+    "FLAT20%OFF",
+    "₹499STORE",
+    "BUY2GET1FREE"
+];
+
+document.getElementById('zipForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+
+    const zipFile = document.getElementById('productZip').files[0];
+
+    if (zipFile) {
+        const reader = new FileReader();
+        reader.onload = function (event) {
+            const zip = new JSZip();
+            zip.loadAsync(event.target.result).then(function (zipContent) {
+                const imageFiles = [];
+                
+                // Collect all images from the ZIP file
+                zip.forEach(function (relativePath, file) {
+                    if (relativePath.endsWith('.jpg') || relativePath.endsWith('.png') || relativePath.endsWith('.jpeg')) {
+                        imageFiles.push(file);
+                    }
+                });
+
+                const bannersContainer = document.querySelector('.banners');
+                bannersContainer.innerHTML = '';
+
+                if (imageFiles.length > 0) {
+                    // Create a banner for each offer
+                    for (let i = 0; i < offers.length; i++) {
+                        if (i < imageFiles.length) { // Only use images if available
+                            const file = imageFiles[i];
+                            file.async('blob').then(function (blob) {
+                                const bannerDiv = document.createElement('div');
+                                bannerDiv.classList.add('banner');
+
+                                const imageUrl = URL.createObjectURL(blob);
+                                bannerDiv.innerHTML = `
+                                    <img src="${imageUrl}" alt="Banner Image">
+                                    <p>${offers[i]}</p>
+                                `;
+
+                                bannersContainer.appendChild(bannerDiv);
+
+                                // Auto-slide functionality
+                                let index = 0;
+                                const totalBanners = bannersContainer.children.length;
+
+                                function showBanner(i) {
+                                    const translateX = -i * 1360; // 1360px is the width of each banner
+                                    bannersContainer.style.transform = translateX(${translateX}px);
+                                }
+
+                                function nextBanner() {
+                                    index = (index + 1) % totalBanners;
+                                    showBanner(index);
+                                }
+
+                                function prevBanner() {
+                                    index = (index - 1 + totalBanners) % totalBanners;
+                                    showBanner(index);
+                                }
+
+                                document.getElementById('next').addEventListener('click', nextBanner);
+                                document.getElementById('prev').addEventListener('click', prevBanner);
+
+                                // Start auto-sliding every 3 seconds
+                                setInterval(nextBanner, 3000);
+                            });
+                        }
+                    }
+                } else {
+                    alert('No valid image files found in the ZIP.');
+                }
+            });
+        };
+        reader.readAsArrayBuffer(zipFile);
+    } else {
+        alert('Please upload a valid ZIP file.');
+    }
+});
